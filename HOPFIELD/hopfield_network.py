@@ -143,9 +143,9 @@ def synchronous_update(Network, input):
 
         t2 = np.matmul(Network, t1)
         t3 = activations_function(t1, t2)
-        print("t1 = ", t1)
-        print("t22 = ", t2)
-        print("t33 = ", t3)
+        # print("t1 = ", t1)
+        # print("t22 = ", t2)
+        # print("t33 = ", t3)
         if t3.tolist() == t1.tolist() :
             print("Converged = ", t3)
             print("The energy = ", energy(Network, t1))
@@ -470,7 +470,225 @@ def question3():
     plt.ylabel('Energy')
     plt.show()
    
-question3()
+def add_noises(pattern, rate = 0.9) :
+    
+    pattern = np.copy(pattern)
+    length = len(pattern)
+    order = np.arange(length)
+    np.random.shuffle(order)
+    
+    nb_element = int(np.ceil(length*rate))
+    
+    for i in range(nb_element) :
+        t = pattern[order[i]]
+        pattern[order[i]] = -t
+        
+    return pattern 
+        
+    
+def question4():
+    data = load_pictures()
+    Network = data[0:3]
+    train_Network = train_batch(Network,True)
+    print("is_stable = ", check_network_stability(train_Network,Network))
+    
+    p1 = data[0]
+    p2 = data[1]
+    p3 = data[2]
+    noise_rate = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+    
+    # respons = asynchronous_update(train_Network, p10,random_oder = False, window_size = 100) 
+    # respons = asynchronous_update(train_Network, p10,random_oder = True, window_size = 500) 
+    # respons = synchronous_update(train_Network, p10)
+    
+    rep_list = []
+    for noise in noise_rate :
+        p_temp = add_noises(p2,noise)
+        respons = synchronous_update(train_Network, p_temp)
+        plot_2patterns(p_temp,respons,32,32)
+        rep_list.append(respons)
+    
+    plot_patterns(rep_list, 32, 32)
+  
+def create_pattern(dim = 4):
+    a = -1 
+    b = 1
+
+    mu, sigma = 0, 0.1
+    # This pattern are biased with 0.3
+    # in order to make the data more similar +1 > -1
+    # Remove it if not needed
+    vec = np.random.normal(mu, sigma, dim) + 0.1
+    vec = np.where(vec>0, 1, -1)
+    return vec
+    
+def train_by_index(data, index):
+    Network = data[0:index]
+    train_Network = train_batch(Network,True)
+    print("is_stable = ", check_network_stability(train_Network,Network))
+    return train_Network
+    
+def tolerance(train_Network,pattern):
+    rep_list = []
+    noise_rate = [0.2,0.3,0.4,0.5,0.6]
+    accuracy = 0
+    count = 0
+    for noise in noise_rate :
+        count = count + 1
+        p_temp = add_noises(pattern,noise)
+        respons = synchronous_update(train_Network, p_temp)
+        # plot_2patterns(p_temp,respons,32,32)
+        rep_list.append(respons)
+        if pattern.tolist() == respons.tolist() :
+            accuracy = accuracy + 1
+    # plot_patterns(rep_list, 32, 32)
+    
+    success = accuracy / count
+    return success
+    
+def question5():
+    data = load_pictures()
+    # train_Network = train_by_index(data, 4)
+    
+    # p1 = data[0]
+    # p2 = data[1]
+    # p3 = data[2]
+    # p4 = data[3]
+    # p5 = data[4]
+    # p6 = data[5]
+    # p7 = data[6]
+    # noise_rate = [0.2,0.3,0.4,0.5,0.6]
+    # 
+    # accuracy = tolerance(train_Network,p3)
+    # print("Accuracy = ",accuracy )
+    acc = []
+    for i in range(2,8):
+        train_Network = train_by_index(data, i)
+        accuracy = tolerance(train_Network,data[i-1])
+        print("Iter: ", i, " Accuracy = ", accuracy )
+        acc.append(accuracy)
+        
+    plt.plot(acc,'r--')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.show()
+    
+    # print(create_pattern(4))
+    # print(create_pattern(4))
+    
+def question5_random():
+    data = []
+    for i in range(10):
+        temp = create_pattern(1024)
+        data.append(temp.tolist())
+    data = np.array(data)
+    
+    acc = []
+    for i in range(2,8):
+        train_Network = train_by_index(data, i)
+        accuracy = tolerance(train_Network,data[i-1])
+        print("Iter: ", i, " Accuracy = ", accuracy )
+        acc.append(accuracy)
+        
+    plt.plot(acc,'r--')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.show()
+    
+    # print(create_pattern(4))
+    # print(create_pattern(4))
+
+def check_network_reliability(Network, list_of_inputs) :
+    """
+    Given a list of input 
+    X = [[X1], [X2], ...,[Xn]] 
+    and a hopfield network N
+    check the network stability given
+    te inputs 
+
+    """
+    count = 0
+    input_index = []
+    Stable = False 
+    for i, input in enumerate(list_of_inputs) :
+        
+        if is_stable(Network, input):
+            count = count + 1
+        else :
+            input_index.append(i)
+    
+    if count != len(list_of_inputs):
+        print("The network is instable for the input indices = ", input_index)
+    else :
+        Stable = True
+        print("The network is stable ! congratulations ")
+    return Stable, count
+    
+
+
+def question51_random():
+    data_noises = []
+    data_clean = []
+    for i in range(300):
+        t = create_pattern(100)
+        temp = add_noises(t, 0.12 )
+        data_clean.append(t.tolist())
+        data_noises.append(temp.tolist())
+    data_noises = np.array(data_noises)
+    data_clean = np.array(data_clean)
+    
+    stable_patterns_clean = []
+    stable_patterns_noises = []
+    
+    for i in range(1,300):
+        train_Network = train_by_index(data_clean, i)
+        stable, count = check_network_reliability(train_Network, data_clean[0:i])
+        stable_patterns_clean.append(count)
+        
+        train_Network = train_by_index(data_noises, i)
+        stable, count = check_network_reliability(train_Network, data_noises[0:i])
+        stable_patterns_noises.append(count)
+    plt.figure()
+    plt.plot(stable_patterns_clean,'r--')
+    plt.xlabel('Pattern')
+    plt.ylabel('Stable patterns')
+    plt.show()
+    
+    plt.figure()
+    plt.plot(stable_patterns_noises,'b--')
+    plt.xlabel('Pattern')
+    plt.ylabel('Stable patterns')
+    plt.show()
+
+
+def question52_random():
+
+    data_clean = []
+    for i in range(300):
+        t = create_pattern(100)
+        data_clean.append(t.tolist())
+
+
+    data_clean = np.array(data_clean)
+    
+    stable_patterns_clean = []
+
+    
+    for i in range(1,300):
+        train_Network = train_by_index(data_clean, i)
+        stable, count = check_network_reliability(train_Network, data_clean[0:i])
+        stable_patterns_clean.append(count)
+
+    plt.figure()
+    plt.plot(stable_patterns_clean,'g--')
+    plt.xlabel('Pattern')
+    plt.ylabel('Stable patterns')
+    plt.show()
+
+    
+    
+question52_random()
+
 
 # A, test_pattern = create_random_matrix(4)
 # print(A)
