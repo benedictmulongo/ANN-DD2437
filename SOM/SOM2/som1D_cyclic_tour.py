@@ -12,7 +12,7 @@ def get_cities():
     # [1,2,3,4,5,6,7,8,9,10]
     return back
 
-def initialisation(x, dim):
+def initialisation(x, dim, n_iterations):
     """
     x = number of nodes in the linear network 
     dim = the dimension of each weight vector corresponding to each
@@ -54,7 +54,7 @@ def winning_node(input, network):
     
     return best, best_index
             
-def som_train(network, data):
+def som_train(network, data, n_iterations, init_radius, time_constant, init_learning_rate):
     
     index, dim = np.shape(network)
     
@@ -186,21 +186,26 @@ def plot_tour(cities, tour):
     pl.figure()
     plt.grid(True)
     pl.plot(cities[:,0],cities[:,1],'.')
-    pl.plot(tour[:,0],tour[:,1],'b-')
+    # pl.plot(tour[:,0],tour[:,1],'b-')
     pl.show()
     print()
 
 def test() :
     # Load the data 
     cities = get_cities()
-    print(cities)
+    print("cities : " , cities)
     # Train the network 
     n_iterations = 20
     init_learning_rate = 0.2
-    net_dim, init_radius, time_constant, network  = initialisation(10,2)
-    net = som_train(network,cities)
-    
+    net_dim, init_radius, time_constant, network  = initialisation(10,2, n_iterations)
+    net = som_train(network,cities, n_iterations, init_radius, time_constant, init_learning_rate)
     
     print("Hakuna matata = ")
     tour, tour_np = tsp_tour(cities, net)
+    
+    print("tour : " , tour)
     plot_tour(cities, tour)
+    
+    
+
+test() 
